@@ -45,11 +45,13 @@ static inline int x2apic_enable(void)
 						    eax, edx);
 	}
 
-	/*
-	 * TODO: Configure spurious interrupt vector number
-	 * After power-up or reset this is 0xff, which might not be
-	 * configured in the trap table
-	 */
+	uk_arch_x86_64_rdmsr(UK_ARCH_X86_64_APIC_MSR_SVR,
+					    &eax, &edx);
+	eax &= ~UK_ARCH_X86_64_APIC_SVR_VECTOR_MASK;
+	/* Set spurious interrupt vector to first IRQ vector */
+	eax |= 0x1f;
+	uk_arch_x86_64_wrmsr(UK_ARCH_X86_64_APIC_MSR_SVR,
+					    eax, edx);
 
 	return 0;
 }
