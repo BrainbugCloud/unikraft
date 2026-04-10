@@ -399,8 +399,8 @@ static struct pci_bus_handler ph __unused;
 #define PCI_CONF_SUBCLASS_ID_MASK     (0x00FF)
 
 #define PCI_CONF_SECONDARY_BUS          (0x18)
-#define PCI_CONF_SECONDARY_BUS_SHFT     (0)
-#define PCI_CONF_SECONDARY_BUS_MASK     (0xFF00)
+#define PCI_CONF_SECONDARY_BUS_SHFT     (8)
+#define PCI_CONF_SECONDARY_BUS_MASK     (0xFF)
 
 #define PCI_CONF_REVISION_ID		(0x08)
 #define PCI_CONF_REVISION_ID_SHFT	(0)
