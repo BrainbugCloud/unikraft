@@ -316,10 +316,13 @@ static int phys_alloc(__paddr_t *paddr, __sz pages)
 		if (rc)
 			return rc;
 		return 1;
-	} else if (rc && rc != -EFAULT) {
-		/* Some other error happened (and that error was not that the
-		 * range was outside the frame allocator range)
+	} else if (rc == -EFAULT) {
+		/* BAR is outside the frame allocator range (e.g. 64-bit
+		 * BAR above managed memory).  Propagate so the caller
+		 * can map it at a kernel virtual address instead.
 		 */
+		return -EFAULT;
+	} else if (rc) {
 		return rc;
 	}
 
@@ -356,13 +359,22 @@ static int physmem_free(__paddr_t paddr, __sz pages)
  * accessible MSI-X table.
  */
 
+#ifdef CONFIG_PAGING
+/* Virtual address range for MMIO BARs that can't use identity mapping
+ * (e.g. 64-bit BARs at non-canonical physical addresses).
+ * Grows downward from PCI_MMIO_VA_START.
+ */
+#define PCI_MMIO_VA_START	0xfffffe0000000000UL
+static __vaddr_t pci_mmio_va_next = PCI_MMIO_VA_START;
+#endif
+
 int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 		struct pci_bar_memory *mem)
 {
 	__paddr_t bar_phys;
 	__vaddr_t bar_virt;
 	__sz bar_size;
-	__sz bar_pages;
+	__sz __maybe_unused bar_pages;
 	int rc;
 #ifdef CONFIG_PAGING
 	struct uk_pagetable *pt;
@@ -374,29 +386,57 @@ int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 	rc = pci_bar_phys_region(dev, idx, &bar_phys, &bar_size);
 	if (rc)
 		return rc;
+
+	uk_pr_debug("BAR%d physical memory region: [%#" PRIx64 "-%#" PRIx64
+		    ")\n",
+		    idx, bar_phys, bar_phys + bar_size);
+
+	/* Map base address memory */
+#ifdef CONFIG_PAGING
 	bar_pages = DIV_ROUND_UP(bar_size, __PAGE_SIZE);
+	pt = ukplat_pt_get_active();
 
 	rc = phys_alloc(&bar_phys, bar_pages);
-	if (rc < 0)
-		return rc;
+	if (rc < 0) {
+		if (rc != -EFAULT)
+			return rc;
+
+		/* BAR is outside the frame allocator range (e.g. 64-bit
+		 * BAR above managed memory).  Don't relocate — keep the
+		 * original MMIO address and map it at a kernel-canonical
+		 * virtual address so the CPU can access it.
+		 */
+		pci_mmio_va_next -= bar_pages * __PAGE_SIZE;
+		bar_virt = pci_mmio_va_next;
+
+		uk_pr_info("BAR%d: MMIO at %#" PRIx64
+			   ", mapping to VA %#" PRIx64 "\n",
+			   idx, bar_phys, bar_virt);
+
+		rc = ukplat_page_map(pt, bar_virt, bar_phys,
+				     bar_pages, attr, 0);
+		if (unlikely(rc))
+			return rc;
+
+		goto done;
+	}
 	if (rc == 1) {
 		rc = pci_set_bar(dev, idx, bar_phys);
 		if (rc)
 			return rc;
 	}
 
-	/* Map base address memory */
-#ifdef CONFIG_PAGING
-	/* TODO: Allocate virtual address space range */
+	/* Identity-map: works when bar_phys is canonical */
 	bar_virt = bar_phys;
 
-	pt = ukplat_pt_get_active();
 	uk_pr_debug("Mapping PCI device memory in virtual address space\n");
 	rc = ukplat_page_map(pt, bar_virt, bar_phys, bar_pages, attr, 0);
 	if (unlikely(rc)) {
 		pt->fa->ffree(pt->fa, bar_phys, bar_pages);
 		return rc;
 	}
+done:
+	;
 #else
 	(void)attr;
 	/* Without paging we can just use the physical address */

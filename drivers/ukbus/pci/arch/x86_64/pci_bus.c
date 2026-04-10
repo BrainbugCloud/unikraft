@@ -233,8 +233,10 @@ static int probe_function(__u32 bus, __u32 device, __u32 function)
 		pci_driver_add_device(drv, &addr, &devid);
 	}
 
-	/* 0x06 = Bridge Device, 0x04 = PCI-to-PCI bridge */
-	if ((devid.class_id == 0x06) && (devid.sub_class_id == 0x04)) {
+	/* Bridge Device (class 0x06), PCI-to-PCI bridge (subclass 0x04).
+	 * CLASS_ID is masked with 0xFF00 so compare with 0x0600.
+	 */
+	if ((devid.class_id == 0x0600) && (devid.sub_class_id == 0x04)) {
 		PCI_CONF_READ(__u32, &secondary_bus,
 				config_addr, SECONDARY_BUS);
 		probe_bus(secondary_bus);
