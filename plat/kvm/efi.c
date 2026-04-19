@@ -76,6 +76,28 @@ static void uk_efi_printf(const char *str, ...)
 
 void uk_efi_jmp_to_kern(void) __noreturn;
 
+/* Unconditional EFI console print — visible on VNC via GOP.
+ * Works before ExitBootServices() only. No PRINTD dependency.
+ */
+static void uk_efi_puts(const char *msg)
+{
+	__s16 buf16[256];
+	int i = 0;
+
+	while (*msg && i < 254) {
+		if (*msg == '\n')
+			buf16[i++] = '\r';
+		buf16[i++] = (__s16)*msg++;
+	}
+	buf16[i] = 0;
+	uk_efi_st->con_out->output_string(uk_efi_st->con_out, buf16);
+}
+
+/* ── GOP framebuffer console (GSoC 2024 / PR #1448) ─────────────── */
+#if CONFIG_LIBUKCONSOLE_GOP
+#include <uk/console/gop.h>
+#endif
+
 /* Overlysimplified conversion from ASCII to UTF-16 */
 static __sz ascii_to_utf16(const char *str, char *str16, __sz max_len16)
 {
@@ -614,9 +636,13 @@ static void uk_efi_setup_bootinfo(void)
 
 	memcpy(bi->bootloader, bl, sizeof(bl));
 	memcpy(bi->bootprotocol, bp, sizeof(bp));
+	uk_efi_puts("[EFI]   Loading command line...\n");
 	uk_efi_setup_bootinfo_cmdl(bi);
+	uk_efi_puts("[EFI]   Loading initrd...\n");
 	uk_efi_setup_bootinfo_initrd(bi);
+	uk_efi_puts("[EFI]   Loading DTB...\n");
 	uk_efi_setup_bootinfo_dtb(bi);
+	uk_efi_puts("[EFI]   Building memory map + ExitBootServices...\n");
 	uk_efi_setup_bootinfo_mrds(bi);
 
 	bi->efi_st = (__u64)uk_efi_st;
@@ -662,11 +688,22 @@ void __uk_efi_api __noreturn uk_efi_main(uk_efi_hndl_t self_hndl,
 {
 	uk_efi_init_vars(self_hndl, sys_tbl);
 	uk_efi_cls();
+	uk_efi_puts("[EFI] Unikraft EFI stub starting\n");
 	uk_efi_reset_attack_mitigation_enable();
+
+#if CONFIG_LIBUKCONSOLE_GOP
+	/* Initialize GOP framebuffer console before ExitBootServices.
+	 * This registers a console device that survives ExitBootServices —
+	 * all subsequent uk_pr_* / printf output goes to the framebuffer.
+	 */
+	uk_efi_puts("[EFI] Initializing GOP framebuffer console...\n");
+	gop_init(uk_efi_bs);
+#endif
 
 	/* uk_efi_setup_bootinfo must be called last, since it will exit Boot
 	 * Service after obtaining EFI memory map
 	 */
+	uk_efi_puts("[EFI] Loading bootinfo (cmdl, initrd, memory map)...\n");
 	uk_efi_setup_bootinfo();
 
 	/* Jump to arch specific post-EFI entry */
