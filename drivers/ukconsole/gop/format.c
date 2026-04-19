@@ -13,9 +13,9 @@ enum state {
 	ESCAPED_FULL,	/* Encountered `[` right after `\033` */
 };
 
-/* Char formatting */
-__u8 format_fg;
-__u8 format_bg;
+/* Char formatting — 37 = white foreground, 40 = black background */
+__u8 format_fg = 37;
+__u8 format_bg = 40;
 
 /* The code is of the format `\033[<code>m` */
 static __u8 cur_code = 0; /* Part of the code that has been parsed */
@@ -47,6 +47,20 @@ bool format_char(char c)
 	case ESCAPED_FULL:
 		if (c >= '0' && c <= '9') {
 			cur_code = cur_code * 10 + (c - '0');
+		} else if (c == ';') {
+			/* Semicolon separates parameters — apply current
+			 * code and start parsing the next parameter.
+			 */
+			if (cur_code == 0) {
+				format_fg = 37;
+				format_bg = 40;
+			} else if (cur_code >= 30 && cur_code < 40) {
+				format_fg = cur_code;
+			} else if (cur_code >= 40 && cur_code < 50) {
+				format_bg = cur_code;
+			}
+			/* Ignore codes we don't handle (1=bold, etc.) */
+			cur_code = 0;
 		} else if (c == 'm') {
 			cur_state = PRINTABLE_CHAR;
 			if (cur_code == 0) {
@@ -62,8 +76,9 @@ bool format_char(char c)
 		} else if (c == '\033') {
 			cur_state = ESCAPED_HALF;
 		} else {
+			/* Unknown char ends the sequence — don't print it */
 			cur_state = PRINTABLE_CHAR;
-			return true;
+			cur_code = 0;
 		}
 		break;
 	default:
