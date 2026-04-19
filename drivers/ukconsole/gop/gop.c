@@ -43,20 +43,34 @@ extern __u8 format_fg;
 extern __u8 format_bg;
 
 #define TAB_ALIGNMENT 8
-#define GOP_COLOR(r, g, b) (((r) << 16) | ((g) << 8) | ((b) << 0))
-#define GOP_BLACK	GOP_COLOR(  0,   0,   0)
-#define GOP_RED		GOP_COLOR(192,   0,   0)
-#define GOP_GREEN	GOP_COLOR(  0, 192,   0)
-#define GOP_YELLOW	GOP_COLOR(192, 192,   0)
-#define GOP_BLUE	GOP_COLOR(  0,   0, 192)
-#define GOP_MAGENTA	GOP_COLOR(192,   0, 192)
-#define GOP_CYAN	GOP_COLOR(  0, 192, 192)
-#define GOP_WHITE	GOP_COLOR(192, 192, 192)
 
-static __u32 gop_colors[] = {
-	GOP_BLACK, GOP_RED, GOP_GREEN, GOP_YELLOW,
-	GOP_BLUE, GOP_MAGENTA, GOP_CYAN, GOP_WHITE
-};
+/* Pixel format detected from GOP mode info */
+static enum uk_efi_graphics_pixel_format pixel_format;
+
+static inline __u32 gop_color(__u8 r, __u8 g, __u8 b)
+{
+	switch (pixel_format) {
+	case UK_EFI_PIXEL_RED_GREEN_BLUE_RESERVED_8BIT_PER_COLOR:
+		return ((__u32)r) | ((__u32)g << 8) | ((__u32)b << 16);
+	case UK_EFI_PIXEL_BLUE_GREEN_RED_RESERVED_8BIT_PER_COLOR:
+	default:
+		return ((__u32)r << 16) | ((__u32)g << 8) | ((__u32)b);
+	}
+}
+
+static __u32 gop_colors[8];
+
+static void gop_init_colors(void)
+{
+	gop_colors[0] = gop_color(  0,   0,   0); /* black */
+	gop_colors[1] = gop_color(192,   0,   0); /* red */
+	gop_colors[2] = gop_color(  0, 192,   0); /* green */
+	gop_colors[3] = gop_color(192, 192,   0); /* yellow */
+	gop_colors[4] = gop_color(  0,   0, 192); /* blue */
+	gop_colors[5] = gop_color(192,   0, 192); /* magenta */
+	gop_colors[6] = gop_color(  0, 192, 192); /* cyan */
+	gop_colors[7] = gop_color(192, 192, 192); /* white */
+}
 
 #define GOP_FG_COLOR(fg) (gop_colors[(fg) - 30])
 #define GOP_BG_COLOR(bg) (gop_colors[(bg) - 40])
@@ -65,7 +79,7 @@ static void gop_console_clear(void)
 {
 	for (__u32 y = 0; y < fb_height; y++)
 		for (__u32 x = 0; x < fb_width; x++)
-			fb[x + y * fb_real_width] = GOP_BLACK;
+			fb[x + y * fb_real_width] = gop_colors[0];
 }
 
 /* Draw formatted character at given row and col */
@@ -195,6 +209,10 @@ uk_efi_status_t gop_init(struct uk_efi_boot_services *bs)
 	fb_width = gop->mode->info->horizontal_resolution;
 	fb_height = gop->mode->info->vertical_resolution;
 	fb_real_width = gop->mode->info->pixels_per_scanline;
+	pixel_format = gop->mode->info->pixel_format;
+
+	/* Initialize color table based on pixel format */
+	gop_init_colors();
 
 	/* Use identity-mapped address for now (works before paging) */
 	fb = (volatile __u32 *)(unsigned long)fb_paddr;
