@@ -31,7 +31,9 @@
  */
 
 #include <stdint.h>
+#include <inttypes.h>
 #include <uk/bitops.h>
+#include <uk/bitops/bitmap.h>
 #include <uk/config.h>
 #include <uk/arch/types.h>
 #include <uk/arch/paging.h>
