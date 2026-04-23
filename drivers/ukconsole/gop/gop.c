@@ -14,8 +14,8 @@
 #include <uk/prio.h>
 #include "format.h"
 
-#if CONFIG_HAVE_PAGING && CONFIG_HAVE_PAGING_DIRECTMAP
-#include <uk/arch/paging.h>
+#if CONFIG_HAVE_PAGING && CONFIG_LIBUKPAGING_DIRECTMAP
+#include <uk/paging.h>
 #define DIRECTMAP_AREA_START	0xffffff8000000000UL
 #endif
 
@@ -236,7 +236,7 @@ static int gop_early_init(struct ukplat_bootinfo *bi __unused)
 	if (!fb_paddr)
 		return 0;
 
-#if CONFIG_HAVE_PAGING && CONFIG_HAVE_PAGING_DIRECTMAP
+#if CONFIG_HAVE_PAGING && CONFIG_LIBUKPAGING_DIRECTMAP
 	/* Convert framebuffer pointer to directmap virtual address */
 	fb = (volatile __u32 *)(DIRECTMAP_AREA_START + fb_paddr);
 #endif
