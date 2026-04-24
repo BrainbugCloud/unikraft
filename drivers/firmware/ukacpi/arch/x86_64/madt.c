@@ -74,15 +74,21 @@ int uk_acpi_madt_fill_cpu_idmap(void)
 			continue;
 		}
 
-		uk_pcpuvar_lval(idx, uk_pcpuvar_cpu_id) = cpu_id;
-		uk_pcpuvar_lval(idx, uk_pcpuvar_cpu_idx) = idx;
-		idx++;
-
-		/* Ignore cores that exceed max configured value */
-		if (unlikely(idx == CONFIG_UKPLAT_CPU_MAXCOUNT)) {
+		/* Ignore cores that exceed max configured value. Check BEFORE
+		 * writing — the per-CPU variable array is sized for
+		 * CONFIG_UKPLAT_CPU_MAXCOUNT, so uk_pcpuvar_lval(idx, ...) with
+		 * idx >= MAXCOUNT writes past the array and corrupts adjacent
+		 * memory (e.g. the bootinfo memregion list placed right after
+		 * the pcpuvar section by the linker).
+		 */
+		if (unlikely(idx >= CONFIG_UKPLAT_CPU_MAXCOUNT)) {
 			uk_pr_warn("Maximum number of cores exceeded.\n");
 			break;
 		}
+
+		uk_pcpuvar_lval(idx, uk_pcpuvar_cpu_id) = cpu_id;
+		uk_pcpuvar_lval(idx, uk_pcpuvar_cpu_idx) = idx;
+		idx++;
 	}
 	UK_ASSERT(bsp_found);
 
