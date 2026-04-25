@@ -57,7 +57,7 @@
 #include <uk/bus/pci.h>
 #include <uk/arch/util.h>
 #include <uk/arch/limits.h>
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 #include <uk/paging.h>
 #include <uk/falloc.h>
 #else
@@ -294,7 +294,7 @@ static int pci_bar_phys_region(struct pci_device *pci_dev, uint32_t idx,
  */
 static int phys_alloc(__paddr_t *paddr, __sz pages)
 {
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 	struct uk_pagetable *pt;
 	int rc;
 
@@ -342,7 +342,7 @@ static int phys_alloc(__paddr_t *paddr, __sz pages)
 
 static int physmem_free(__paddr_t paddr, __sz pages)
 {
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 	struct uk_pagetable *pt;
 
 	pt = uk_paging_pt_get_active();
@@ -358,7 +358,7 @@ static int physmem_free(__paddr_t paddr, __sz pages)
  * accessible MSI-X table.
  */
 
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 /* Virtual address range for MMIO BARs that can't use identity mapping
  * (e.g. 64-bit BARs at non-canonical physical addresses).
  * Grows downward from PCI_MMIO_VA_START.
@@ -375,7 +375,7 @@ int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 	__sz bar_size;
 	__sz __maybe_unused bar_pages;
 	int rc;
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 	struct uk_pagetable *pt;
 #endif
 
@@ -391,7 +391,7 @@ int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 		    idx, bar_phys, bar_phys + bar_size);
 
 	/* Map base address memory */
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 	bar_pages = DIV_ROUND_UP(bar_size, __PAGE_SIZE);
 	pt = uk_paging_pt_get_active();
 
@@ -455,13 +455,13 @@ int pci_unmap_bar(struct pci_device *dev __unused, __u8 idx __unused,
 {
 	int rc = 0;
 	size_t bar_pages;
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 	struct uk_pagetable *pt;
 #endif
 
 	bar_pages = DIV_ROUND_UP(mem->size, __PAGE_SIZE);
 
-#ifdef CONFIG_PAGING
+#ifdef CONFIG_LIBUKPAGING
 	pt = uk_paging_pt_get_active();
 	rc = uk_paging_page_unmap(pt, (__vaddr_t)mem->start, bar_pages, 0);
 #endif
