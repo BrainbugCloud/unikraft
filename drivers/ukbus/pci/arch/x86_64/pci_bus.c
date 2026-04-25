@@ -69,20 +69,20 @@
 int pci_generic_config_read(__u8 bus, __u8 devfn,
 			    int where, int size, void *val)
 {
-	outl(PCI_CONFIG_ADDR, (PCI_ENABLE_BIT)		|
+	uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (PCI_ENABLE_BIT)	|
 			      (bus << PCI_BUS_SHIFT)	|
 			      (devfn << PCI_DEVICE_SHIFT)|
 			      (where & ~0x03));
 
 	switch (size) {
 	case 8:
-		*(__u8 *)val = inb(PCI_CONFIG_DATA + (where & 0x03));
+		*(__u8 *)val = uk_arch_x86_64_inb(PCI_CONFIG_DATA + (where & 0x03));
 		break;
 	case 16:
-		*(__u16 *)val = inw(PCI_CONFIG_DATA + (where & 0x03));
+		*(__u16 *)val = uk_arch_x86_64_inw(PCI_CONFIG_DATA + (where & 0x03));
 		break;
 	case 32:
-		*(__u16 *)val = inl(PCI_CONFIG_DATA + (where & 0x03));
+		*(__u16 *)val = uk_arch_x86_64_inl(PCI_CONFIG_DATA + (where & 0x03));
 		break;
 	default:
 		return -EINVAL;
@@ -95,20 +95,20 @@ int pci_generic_config_write(__u8 bus, __u8 devfn,
 			     int where, int size, __u32 val)
 
 {
-	outl(PCI_CONFIG_ADDR, (PCI_ENABLE_BIT)		|
+	uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (PCI_ENABLE_BIT)	|
 			      (bus << PCI_BUS_SHIFT)	|
 			      (devfn << PCI_DEVICE_SHIFT)|
 			      (where & ~0x03));
 
 	switch (size) {
 	case 8:
-		outb(PCI_CONFIG_DATA + (where & 0x03), val);
+		uk_arch_x86_64_outb(PCI_CONFIG_DATA + (where & 0x03), val);
 		break;
 	case 16:
-		outw(PCI_CONFIG_DATA + (where & 0x03), val);
+		uk_arch_x86_64_outw(PCI_CONFIG_DATA + (where & 0x03), val);
 		break;
 	case 32:
-		outl(PCI_CONFIG_DATA + (where & 0x03), val);
+		uk_arch_x86_64_outl(PCI_CONFIG_DATA + (where & 0x03), val);
 		break;
 	default:
 		return -EINVAL;

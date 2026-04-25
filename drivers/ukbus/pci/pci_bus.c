@@ -55,10 +55,10 @@
 #include <inttypes.h>
 #include <uk/print.h>
 #include <uk/bus/pci.h>
-#include <uk/plat/io.h>
+#include <uk/arch/util.h>
 #include <uk/arch/limits.h>
 #ifdef CONFIG_PAGING
-#include <uk/plat/paging.h>
+#include <uk/paging.h>
 #include <uk/falloc.h>
 #else
 #include <uk/alloc.h>
@@ -298,7 +298,7 @@ static int phys_alloc(__paddr_t *paddr, __sz pages)
 	struct uk_pagetable *pt;
 	int rc;
 
-	pt = ukplat_pt_get_active();
+	pt = uk_paging_pt_get_active();
 
 	/* Allocate phys frames for the area. But don't allow that for NULL
 	 * addresses
@@ -345,7 +345,7 @@ static int physmem_free(__paddr_t paddr, __sz pages)
 #ifdef CONFIG_PAGING
 	struct uk_pagetable *pt;
 
-	pt = ukplat_pt_get_active();
+	pt = uk_paging_pt_get_active();
 	return pt->fa->ffree(pt->fa, paddr, pages);
 #else
 	(void)pages;
@@ -393,7 +393,7 @@ int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 	/* Map base address memory */
 #ifdef CONFIG_PAGING
 	bar_pages = DIV_ROUND_UP(bar_size, __PAGE_SIZE);
-	pt = ukplat_pt_get_active();
+	pt = uk_paging_pt_get_active();
 
 	rc = phys_alloc(&bar_phys, bar_pages);
 	if (rc < 0) {
@@ -412,7 +412,7 @@ int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 			   ", mapping to VA %#" PRIx64 "\n",
 			   idx, bar_phys, bar_virt);
 
-		rc = ukplat_page_map(pt, bar_virt, bar_phys,
+		rc = uk_paging_page_map(pt, bar_virt, bar_phys,
 				     bar_pages, attr, 0);
 		if (unlikely(rc))
 			return rc;
@@ -429,7 +429,7 @@ int pci_map_bar(struct pci_device *dev, __u8 idx, int attr,
 	bar_virt = bar_phys;
 
 	uk_pr_debug("Mapping PCI device memory in virtual address space\n");
-	rc = ukplat_page_map(pt, bar_virt, bar_phys, bar_pages, attr, 0);
+	rc = uk_paging_page_map(pt, bar_virt, bar_phys, bar_pages, attr, 0);
 	if (unlikely(rc)) {
 		pt->fa->ffree(pt->fa, bar_phys, bar_pages);
 		return rc;
@@ -462,10 +462,10 @@ int pci_unmap_bar(struct pci_device *dev __unused, __u8 idx __unused,
 	bar_pages = DIV_ROUND_UP(mem->size, __PAGE_SIZE);
 
 #ifdef CONFIG_PAGING
-	pt = ukplat_pt_get_active();
-	rc = ukplat_page_unmap(pt, (__vaddr_t)mem->start, bar_pages, 0);
+	pt = uk_paging_pt_get_active();
+	rc = uk_paging_page_unmap(pt, (__vaddr_t)mem->start, bar_pages, 0);
 #endif
-	physmem_free(ukplat_virt_to_phys(mem->start), bar_pages);
+	physmem_free(uk_paging_virt_to_phys(mem->start), bar_pages);
 
 	mem->start = NULL;
 	mem->size = 0;

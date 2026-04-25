@@ -67,6 +67,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <uk/arch/types.h>
+#include <uk/arch/util.h>
 #include <uk/bus.h>
 #include <uk/alloc.h>
 #include <uk/ctors.h>
@@ -235,8 +236,8 @@ int arch_pci_find_next_cap(struct pci_device *pci_dev, __u16 vndr_id,
 #define PCI_CONF_READ_HEADER(type, ret, a, s)				\
 	do {								\
 		__u32 _conf_data;					\
-		outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);		\
-		_conf_data = ((inl(PCI_CONFIG_DATA) >> PCI_CONF_##s##_SHFT)\
+		uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);		\
+		_conf_data = ((uk_arch_x86_64_inl(PCI_CONFIG_DATA) >> PCI_CONF_##s##_SHFT)\
 			      & PCI_CONF_##s##_MASK);			\
 		*(ret) = (type) _conf_data;				\
 	} while (0)
@@ -258,8 +259,8 @@ int arch_pci_find_next_cap(struct pci_device *pci_dev, __u16 vndr_id,
 #define PCI_CONF_READ_OFFSET(type, ret, a, offset, shift, mask)		\
 	do {								\
 		__u32 _conf_data;					\
-		outl(PCI_CONFIG_ADDR, (a) | (offset));			\
-		_conf_data = ((inl(PCI_CONFIG_DATA) >> (shift))		\
+		uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (a) | (offset));			\
+		_conf_data = ((uk_arch_x86_64_inl(PCI_CONFIG_DATA) >> (shift))		\
 			      & (mask));				\
 		*(ret) = (type) _conf_data;				\
 	} while (0)
@@ -280,14 +281,14 @@ int arch_pci_find_next_cap(struct pci_device *pci_dev, __u16 vndr_id,
 #define PCI_CONF_WRITE_HEADER(type, a, s, value)				\
 	do {									\
 		__u32 _conf_data;						\
-		outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);			\
-		_conf_data = inl(PCI_CONFIG_DATA);				\
+		uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);			\
+		_conf_data = uk_arch_x86_64_inl(PCI_CONFIG_DATA);				\
 										\
                 _conf_data &= ~(PCI_CONF_##s##_MASK << PCI_CONF_##s##_SHFT);	\
                 _conf_data |=							\
 		    ((value) & PCI_CONF_##s##_MASK) << PCI_CONF_##s##_SHFT;	\
-		outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);			\
-		outl(PCI_CONFIG_DATA, _conf_data);				\
+		uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);			\
+		uk_arch_x86_64_outl(PCI_CONFIG_DATA, _conf_data);				\
 	} while (0)
 
 /**
@@ -310,14 +311,14 @@ int arch_pci_find_next_cap(struct pci_device *pci_dev, __u16 vndr_id,
 #define PCI_CONF_WRITE_OFFSET(type, a, offset, shift, mask, value)		\
 	do {									\
 		__u32 _conf_data;						\
-		outl(PCI_CONFIG_ADDR, (a) | (offset));				\
-		_conf_data = inl(PCI_CONFIG_DATA);				\
+		uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (a) | (offset));				\
+		_conf_data = uk_arch_x86_64_inl(PCI_CONFIG_DATA);				\
 										\
                 _conf_data &= ~((mask) << (shift));				\
                 _conf_data |=							\
 		    ((value) & (mask)) << (shift);				\
-		outl(PCI_CONFIG_ADDR, (a) | (offset));				\
-		outl(PCI_CONFIG_DATA, _conf_data);				\
+		uk_arch_x86_64_outl(PCI_CONFIG_ADDR, (a) | (offset));				\
+		uk_arch_x86_64_outl(PCI_CONFIG_DATA, _conf_data);				\
 	} while (0)
 
 #define PCI_REGISTER_DRIVER(b)                  \
