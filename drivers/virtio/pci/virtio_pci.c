@@ -980,12 +980,18 @@ static int virtio_pci_add_dev(struct pci_device *pci_dev)
 	rc = virtio_bus_register_device(&vpci_dev->vdev);
 	if (rc != 0) {
 		uk_pr_err("Failed to register the virtio device: %d\n", rc);
-		goto free_pci_dev;
+		goto unmap_bars;
 	}
 
 exit:
 	return rc;
 
+unmap_bars:
+	for (int i = 0; i < PCI_MAX_BARS; i++) {
+		if (vpci_dev->mapped_bar[i].start == __NULL)
+			continue;
+		pci_unmap_bar(pci_dev, i, &vpci_dev->mapped_bar[i]);
+	}
 free_pci_dev:
 	uk_free(a, vpci_dev);
 	goto exit;
