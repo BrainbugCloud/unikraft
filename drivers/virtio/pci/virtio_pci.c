@@ -36,7 +36,7 @@
 #include <uk/bitops/bitmap.h>
 #include <uk/config.h>
 #include <uk/arch/types.h>
-#include <uk/arch/paging.h>
+#include <uk/paging.h>
 #include <errno.h>
 #include <uk/alloc.h>
 #include <uk/print.h>
@@ -638,9 +638,9 @@ static struct virtqueue *vpci_modern_vq_setup(struct virtio_dev *vdev,
 	/* Activate the queue */
 	virtio_mmio_cwrite32(vpdev->common_cfg, VIRTIO_PCI_CFG_QUEUE_READY, 1);
 
-	flags = ukplat_lcpu_save_irqf();
+	flags = uk_lcpu_save_irqf();
 	UK_TAILQ_INSERT_TAIL(&vpdev->vdev.vqs, vq, next);
-	ukplat_lcpu_restore_irqf(flags);
+	uk_lcpu_restore_irqf(flags);
 
 err_exit:
 	return vq;
@@ -893,7 +893,7 @@ static int virtio_pci_modern_add_dev(struct pci_device *pci_dev,
 	if (!virtio_pci_find_cfg_cap(pci_dev, VIRTIO_PCI_CAP_COMMON_CFG,
 				     &found_cap)) {
 		rc = virtio_pci_map_cap(pci_dev, vpci_dev, found_cap,
-					PAGE_ATTR_PROT_RW, &mapped_addr);
+					UK_PAGING_PAGE_ATTR_PROT_RW, &mapped_addr);
 		if (unlikely(rc))
 			return rc;
 		vpci_dev->common_cfg = mapped_addr;
@@ -905,7 +905,7 @@ static int virtio_pci_modern_add_dev(struct pci_device *pci_dev,
 
 	if (!virtio_pci_find_cfg_cap(pci_dev, VIRTIO_PCI_CAP_ISR, &found_cap)) {
 		rc = virtio_pci_map_cap(pci_dev, vpci_dev, found_cap,
-					PAGE_ATTR_PROT_RW, &mapped_addr);
+					UK_PAGING_PAGE_ATTR_PROT_RW, &mapped_addr);
 		if (unlikely(rc))
 			return rc;
 
@@ -926,7 +926,7 @@ static int virtio_pci_modern_add_dev(struct pci_device *pci_dev,
 				     0, UINT32_MAX);
 
 		rc = virtio_pci_map_cap(pci_dev, vpci_dev, found_cap,
-					PAGE_ATTR_PROT_RW, &mapped_addr);
+					UK_PAGING_PAGE_ATTR_PROT_RW, &mapped_addr);
 		if (unlikely(rc))
 			return rc;
 
@@ -941,7 +941,7 @@ static int virtio_pci_modern_add_dev(struct pci_device *pci_dev,
 	if (!virtio_pci_find_cfg_cap(pci_dev, VIRTIO_PCI_CAP_DEVICE_CFG,
 				     &found_cap)) {
 		rc = virtio_pci_map_cap(pci_dev, vpci_dev, found_cap,
-					PAGE_ATTR_PROT_RW, &mapped_addr);
+					UK_PAGING_PAGE_ATTR_PROT_RW, &mapped_addr);
 		if (unlikely(rc))
 			return -1;
 		vpci_dev->device_cfg = mapped_addr;
