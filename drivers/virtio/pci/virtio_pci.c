@@ -789,35 +789,24 @@ static __u8 vpci_modern_pci_status_get(struct virtio_dev *vdev)
 static int virtio_pci_find_cfg_cap(struct pci_device *pci_dev, uint8_t cfg_type,
 				   uint8_t *cap)
 {
-	uint8_t type, curr_cap, type_offset;
+	uint8_t type, curr_cap;
 
 	if (arch_pci_find_cap(pci_dev, PCI_CAP_VENDOR, &curr_cap) != 0)
 		return -1;
 
-	PCI_CONF_READ_OFFSET(uint8_t, &type, pci_dev->config_addr,
-			     __offsetof(struct virtio_pci_cap, cfg_type), 0,
-			     UINT8_MAX);
-
-	/* Iterate through the capabilities to find the matching type */
-	while (type != cfg_type) {
-		if (arch_pci_find_next_cap(pci_dev, PCI_CAP_VENDOR, curr_cap,
-					   &curr_cap)
-		    == 0) {
-			type_offset =
-			    curr_cap
-			    + __offsetof(struct virtio_pci_cap, cfg_type);
-			PCI_CONF_READ_OFFSET(uint8_t, &type,
-					     pci_dev->config_addr, type_offset,
-					     0, UINT8_MAX);
-
-			/* TODO: Check if BAR is a reserved one */
-		} else {
-			return -1;
+	do {
+		PCI_CONF_READ_OFFSET(uint8_t, &type, pci_dev->config_addr,
+				     curr_cap + __offsetof(struct virtio_pci_cap,
+							   cfg_type),
+				     0, UINT8_MAX);
+		if (type == cfg_type) {
+			*cap = curr_cap;
+			return 0;
 		}
-	}
+	} while (arch_pci_find_next_cap(pci_dev, PCI_CAP_VENDOR, curr_cap,
+					&curr_cap) == 0);
 
-	*cap = curr_cap;
-	return 0;
+	return -1;
 }
 
 static int virtio_pci_map_cap(struct pci_device *pci_dev,
