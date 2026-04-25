@@ -965,7 +965,7 @@ static int virtio_pci_add_dev(struct pci_device *pci_dev)
 
 	UK_ASSERT(pci_dev != NULL);
 
-	vpci_dev = uk_malloc(a, sizeof(*vpci_dev));
+	vpci_dev = uk_calloc(a, 1, sizeof(*vpci_dev));
 	if (!vpci_dev) {
 		uk_pr_err("Failed to allocate virtio-pci device\n");
 		return -ENOMEM;
