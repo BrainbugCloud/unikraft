@@ -310,7 +310,7 @@ static int phys_alloc(__paddr_t *paddr, __sz pages)
 
 	if (rc == -ENOMEM) {
 		/* Range is already occupied. Move the PCI device */
-		*paddr = __PADDR_ANY;
+		*paddr = UK_PAGING_PADDR_ANY;
 		rc = pt->fa->falloc(pt->fa, paddr, pages, 0);
 		if (rc)
 			return rc;
@@ -465,7 +465,7 @@ int pci_unmap_bar(struct pci_device *dev __unused, __u8 idx __unused,
 	pt = uk_paging_pt_get_active();
 	rc = uk_paging_page_unmap(pt, (__vaddr_t)mem->start, bar_pages, 0);
 #endif
-	physmem_free(uk_paging_virt_to_phys(mem->start), bar_pages);
+	physmem_free(uk_paging_virt_to_phys((__vaddr_t)mem->start), bar_pages);
 
 	mem->start = NULL;
 	mem->size = 0;
