@@ -457,15 +457,20 @@ int pci_unmap_bar(struct pci_device *dev __unused, __u8 idx __unused,
 	size_t bar_pages;
 #ifdef CONFIG_LIBUKPAGING
 	struct uk_pagetable *pt;
+	__paddr_t bar_phys;
 #endif
 
 	bar_pages = DIV_ROUND_UP(mem->size, __PAGE_SIZE);
 
 #ifdef CONFIG_LIBUKPAGING
 	pt = uk_paging_pt_get_active();
+	/* Resolve the phys before unmapping — uk_paging_virt_to_phys asserts
+	 * the PTE is present, so it must run while the mapping still exists.
+	 */
+	bar_phys = uk_paging_virt_to_phys((__vaddr_t)mem->start);
 	rc = uk_paging_page_unmap(pt, (__vaddr_t)mem->start, bar_pages, 0);
+	physmem_free(bar_phys, bar_pages);
 #endif
-	physmem_free(uk_paging_virt_to_phys((__vaddr_t)mem->start), bar_pages);
 
 	mem->start = NULL;
 	mem->size = 0;
